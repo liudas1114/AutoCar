@@ -142,84 +142,94 @@ class Car():
 
     def drive(self, speed = SPEED):
         # self.go_front(speed)
-        while self.video.isOpened():
-            # time.sleep(2)
-            # cv2.waitKey(500) 
-            ret, frame = self.video.read()
-            self.h, self.w, _ = frame.shape
-            self.curr_steering_angle = 90
-  
-            if ret == True: 
+        # time.sleep(10)
+        x_time = time.time()
+        move_time = 0.3
+        while (True):
+            # time.sleep(3)
 
+            
+            if self.video.isOpened():
                 
-                frame_line = frame.copy()
-                frame_obj = frame.copy()
-                logging.debug('start OD')
-                frame_obj  = self.traffic_sign_processor.process_objects_on_road(frame_obj)
-                frame_both = frame_obj.copy()
-                logging.debug('stop OD')
-                k_thold = 160
-                bottom_fraction_to_analyze = 0.5
-                
-                try:
-                    frame_line = self.line_detector.k_filter_for_black(frame_line, k_thold)
-                    labeled_img, cx_l, sl_l, cx_r, sl_r = self.line_detector.detect_lanes(frame_line, bottom_fraction_to_analyze,return_marked_image = True)
-                except:
-                    self.go_front(self.SPEED)
-                    # cv2.waitKey(-1)
-                    time.sleep(.3)
-                    self.go_free()
-                    logger.error('failed lane detection', exc_info=True)
+                # time.sleep(5)
+                # cv2.waitKey(500) 
+                ret, frame = self.video.read()
+                self.h, self.w, _ = frame.shape
+                self.curr_steering_angle = 90
+
+                if x_time < time.time():
+                    x_time = time.time() + 5
+                else:
                     continue
+    
+                if ret == True: 
 
-                lines = []
-                if cx_l is not None:
-                    self.line_detector._line_for_centerx_and_slope(frame_line, cx_l, sl_l, GREEN)
-                    lines.append(self.line_detector.compute_line(cx_l, sl_l, self.h))
-                if cx_r is not None:
-                    self.line_detector._line_for_centerx_and_slope(frame_line, cx_r, sl_r, BLUE)
-                    lines.append(self.line_detector.compute_line(cx_r, sl_r, self.h))
-                logging.debug('stop LineD')
-                lines = []
-                if cx_l is not None:
-                    self.line_detector._line_for_centerx_and_slope(frame_both, cx_l, sl_l, GREEN)
-                    lines.append(self.line_detector.compute_line(cx_l, sl_l, self.h))
-                if cx_r is not None:
-                    self.line_detector._line_for_centerx_and_slope(frame_both, cx_r, sl_r, BLUE)
-                    lines.append(self.line_detector.compute_line(cx_r, sl_r, self.h))
-                logging.debug('stop LineD')
-                new_steering_angle = self.line_detector.steer(self.curr_steering_angle, lines, self.w, self.h)
-                
-                
-                labeled_img = self.line_detector.display_heading_line(labeled_img, self.curr_steering_angle)
+                    
+                    frame_line = frame.copy()
+                    frame_obj = frame.copy()
+                    logging.debug('start OD')
+                    frame_obj  = self.traffic_sign_processor.process_objects_on_road(frame_obj)
+                    # frame_both = frame_obj.copy()
+                    logging.debug('stop OD')
+                    k_thold = 180
+                    bottom_fraction_to_analyze = 0.5
+                    
+                    try:
+                        frame_line = self.line_detector.k_filter_for_black(frame_line, k_thold)
+                        labeled_img, cx_l, sl_l, cx_r, sl_r = self.line_detector.detect_lanes(frame_line, bottom_fraction_to_analyze,return_marked_image = True)
+                    except:
+                        self.go_front(self.SPEED)
+                        # cv2.waitKey(-1)
+                        time.sleep(move_time)
+                        self.go_free()
+                        logger.error('failed lane detection', exc_info=True)
+                        continue
 
-                frame_both = self.line_detector.display_heading_line(frame_both, new_steering_angle)
+                    lines = []
+                    if cx_l is not None:
+                        self.line_detector._line_for_centerx_and_slope(frame_line, cx_l, sl_l, GREEN)
+                        lines.append(self.line_detector.compute_line(cx_l, sl_l, self.h))
+                    if cx_r is not None:
+                        self.line_detector._line_for_centerx_and_slope(frame_line, cx_r, sl_r, BLUE)
+                        lines.append(self.line_detector.compute_line(cx_r, sl_r, self.h))
+                    # logging.debug('stop LineD')
+                    # lines = []
+                    # if cx_l is not None:
+                    #     self.line_detector._line_for_centerx_and_slope(frame_both, cx_l, sl_l, GREEN)
+                    #     lines.append(self.line_detector.compute_line(cx_l, sl_l, self.h))
+                    # if cx_r is not None:
+                    #     self.line_detector._line_for_centerx_and_slope(frame_both, cx_r, sl_r, BLUE)
+                    #     lines.append(self.line_detector.compute_line(cx_r, sl_r, self.h))
+                    # logging.debug('stop LineD')
+                    new_steering_angle = self.line_detector.steer(self.curr_steering_angle, lines, self.w, self.h)
+                    
+                    labeled_img = self.line_detector.display_heading_line(labeled_img, self.curr_steering_angle)
 
-                
-                cv2.imshow('Original', frame)
-                cv2.imshow('Both', frame_both)
-                cv2.imshow('Line detection', labeled_img)
-                cv2.imshow('Object detection', frame_obj)
-                
-                self.curr_steering_angle = new_steering_angle
-                self.turn()
-                time.sleep(0.3)
-                # cv2.waitKey(100) 
-                self.go_free()
+                    # frame_both = self.line_detector.display_heading_line(frame_both, new_steering_angle)
 
-                # cv2.imshow('detect',frame_obj)
+                    cv2.imshow('Original', frame)
+                    # cv2.imshow('Both', frame_both)
+                    cv2.imshow('Line detection', labeled_img)
+                    cv2.imshow('Object detection', frame_obj)
+                    
+                    self.curr_steering_angle = new_steering_angle
+                    self.turn()
+                    time.sleep(move_time)
+                    # cv2.waitKey(100) 
+                    self.go_free()
 
+                    if cv2.waitKey(3000) & 0xFF == ord('s'):
+                        break
 
-
-                # Press S on keyboard 
-                # to stop the process
-                if cv2.waitKey(1) & 0xFF == ord('s'):
+                    # cv2.imshow('detect',frame_obj)
+                    # Press S on keyboard 
+                    # to stop the process
+                    
+            
+                # Break the loop
+                else:
+                    self.exit() 
                     break
-        
-            # Break the loop
-            else:
-                self.exit() 
-                break
 
     
         
